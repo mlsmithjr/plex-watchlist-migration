@@ -7,8 +7,9 @@ This utility is intended to migrate over your user media viewing history when yo
 Plex server instance.  The process of copying around the full database folder structure is not reliable and
 is just trouble.  So this tool assumes you are starting new libraries on the new machine.
 After copying over all your media, instruct the new Plex server to scan and rebuild your metadata.
-Yes, this will take quite a bit of time for large collections.
-#
+Yes, this will take quite a bit of time for large collections.  Do this for all your
+libraries before proceeding.  This script should be your final step.
+
 After it is done, shut down Plex.
 
 The primary database file for Plex is called **com.plexapp.plugins.library.db** and is located here:
@@ -16,6 +17,8 @@ The primary database file for Plex is called **com.plexapp.plugins.library.db** 
 	  Windows: c:/Users/YOUR_USER/AppData/Local/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db
 	  Linux: /var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/com.plexapp.plugins.library.db
 	  MacOS: /Users/YOUR_USER/Library/Application Support/Plex Media Server/Plug-in Support/com.plexapp.plugins.library.db
+
+### This script is rerun-safe. You can run it as many times as you want and you shouldn't get duplicate data.
 
 1.  Create a working directory somewhere. This is where you will run the script.
 1.  Locate the database file of the NEW plex server and copy it to your working directory as "new.db".
