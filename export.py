@@ -42,14 +42,24 @@ usermap = []
 for row in rows:
     (oldid,name,hashed_password,salt,created_at) = row
     if oldid > 1:       # if PlexPass and have non-admin users, bring them over
-        newcur.execute('insert into accounts (name,hashed_password,salt,created_at) values (?,?,?,?)', row[1:])
-        newid = newcur.lastrowid
+        # check if user already exists
+        newcur.execute('select id, name from accounts where name = ?', (name,))
+        existing = newcur.fetchone()
+        if existing is None:
+            # create user
+            newcur.execute('insert into accounts (name,hashed_password,salt,created_at) values (?,?,?,?)', row[1:])
+            newid = newcur.lastrowid
+        else:
+            # map account id to existing user
+            newid = existing[0]
     else:
+        # probably just the main admin user (account id 1)
         newid = oldid
     usermap.append((oldid, newid))
 
 #
-# get list of all guids in the new system for validation
+# Get list of all guids in the new system for validation. Kudos to the Plex team for having the foresight to use
+# guids for media.
 #
 guidlist = [row[0] for row in newcur.execute('select guid from metadata_items')]
 
