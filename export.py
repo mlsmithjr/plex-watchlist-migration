@@ -166,6 +166,15 @@ for user in usermap:
         guid_dedup.append(guid)
         count += 1
 
+#
+# go through all the media and migrate the added and created dates to preserve "on-deck" ordering
+#
+
+for item in oldcur.execute('select guid,added_at,created_at from metadata_items'):
+    (guid,added_at,created_at) = item
+    # just do an optimistic update - sqllite will ignore if row doesn't exist
+    newcur.execute('update metadata_items set added_at=?, created_at=? where guid=?', (added_at,created_at,guid))
+
 
 oldcur.close()
 newcur.close()

@@ -10,8 +10,8 @@ Script to migrate your "watch" list of media to a new Plex server.
 *Features*
 * Migrate missing users.
 * Migrate watch history of users.
+* Migrate date added/created to preserve on-deck ordering
 
-_Coming soon - migrate original media create dates._
 
 This utility is intended to migrate over your user media viewing history when you move to a new
 Plex server instance.  The process of copying around the full database folder structure is not reliable and
