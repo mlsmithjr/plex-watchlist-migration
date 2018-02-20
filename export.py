@@ -65,7 +65,7 @@ for row in rows:
 # Get list of all guids in the new system for validation. Kudos to the Plex team for having the foresight to use
 # guids for media.
 #
-guidlist = [row[0] for row in newcur.execute('select guid from metadata_items')]
+newguidlist = [row[0] for row in newcur.execute('select guid from metadata_items')]
 
 #
 # get list of old library sections for mapping to new ones
@@ -89,10 +89,16 @@ for id,values in oldsections.items():
 count = 0
 for user in usermap:
     (oldid, newid) = user
-    watchlist = oldcur.execute(
-        "select account_id,guid,metadata_type,library_section_id,grandparent_title,"
-        "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,originally_available_at "
-        "from metadata_item_views where account_id=? and library_section_id is not null", (oldid,))
+
+    settings = oldcur.execute(
+        'select account_id,guid,rating,view_offset,view_count,last_viewed_at,created_at,'
+        'skip_count,last_skipped_at,changed_at,extra_data '
+        'from metadata_item_settings '
+        'where account_id = ?', (oldid,))
+    oldsettings = dict()
+    for setting in settings:
+        guid = setting[1]
+        oldsettings[guid] = setting
 
     newwatchlist = newcur.execute(
         "select guid from metadata_item_views where account_id=? and library_section_id is not null", (newid,))
@@ -104,13 +110,25 @@ for user in usermap:
     for newwatch in newwatchlist:
         already_watched.append(newwatch[0])
 
+    watchlist = oldcur.execute(
+        "select account_id,guid,metadata_type,library_section_id,grandparent_title,"
+        "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,originally_available_at "
+        "from metadata_item_views where account_id=? and library_section_id is not null", (oldid,))
+
+    guid_dedup = []
+
     for watched in watchlist:
         guid = watched[1]
+
+        if guid in guid_dedup:
+            # clean up dups in watch list while we are here
+            continue
+
         if guid in already_watched:
             # already been registered, skip
             continue
 
-        if not guid in guidlist:
+        if not guid in newguidlist:
             print('guid ' + guid + ' not found in media list - skipped')
             continue
 
@@ -121,6 +139,13 @@ for user in usermap:
             print('unknown library section {} for guid {} - skipped'.format(library_section_id, guid))
             continue
 
+        if not guid in oldsettings:
+            print('Unexpected: guid {} not found in metadata_item_settings for user {}'.format(guid, oldid))
+            continue
+
+        #
+        # everything looks good, insert rows
+        #
         w = list(watched)
         w[0] = newid
         w[3] = library_section_id
@@ -129,7 +154,18 @@ for user in usermap:
                 "account_id,guid,metadata_type,library_section_id,grandparent_title,"
                 "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,"
                 "originally_available_at) values (?,?,?,?,?,?,?,?,?,?,?,?,?)", watched)
+
+        s = list(oldsettings[guid])
+        s[0] = newid
+        settings = tuple(s)
+        newcur.execute(
+            'insert into metadata_item_settings (account_id,guid,rating,view_offset,view_count,'
+            'last_viewed_at,created_at,skip_count,last_skipped_at,changed_at,extra_data) '
+            'values (?,?,?,?,?,?,?,?,?,?,?)', settings)
+
+        guid_dedup.append(guid)
         count += 1
+
 
 oldcur.close()
 newcur.close()
