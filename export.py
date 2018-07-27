@@ -1,4 +1,3 @@
-
 #
 # This is a first-class quick hack job.  Follow the instructions precisely.
 #
@@ -44,8 +43,8 @@ newcur = newcon.cursor()
 rows = oldcur.execute('select id,name,hashed_password,salt,created_at from accounts')
 usermap = []
 for row in rows:
-    (oldid,name,hashed_password,salt,created_at) = row
-    if oldid > 1:       # if PlexPass and have non-admin users, bring them over
+    (oldid, name, hashed_password, salt, created_at) = row
+    if oldid > 1:  # if PlexPass and have non-admin users, bring them over
         # check if user already exists
         newcur.execute('select id, name from accounts where name = ?', (name,))
         existing = newcur.fetchone()
@@ -65,22 +64,25 @@ for row in rows:
 # Get list of all guids in the new system for validation. Kudos to the Plex team for having the foresight to use
 # guids for media.
 #
-newguidlist = [row[0] for row in newcur.execute('select guid from metadata_items')]
+newguidlist = [row[0] for row in newcur.execute(
+    'select guid from metadata_items mi inner join library_sections ls on mi.library_section_id = ls.id where ls.section_type in (1,2)')]
 
 #
 # get list of old library sections for mapping to new ones
 #
 oldsections = dict()
-for row in oldcur.execute('select id,name from library_sections'):
-    (id,name) = row
-    oldsections[id] = { 'name': name }
+for row in oldcur.execute('select id,name from library_sections where section_type in (1,2)'):  # movies and TV only
+    (id, name) = row
+    oldsections[id] = {'name': name}
 
 #
 # map to new sections
 #
-for id,values in oldsections.items():
+for id, values in oldsections.items():
     for row in newcur.execute('select id from library_sections where name = ?', (values['name'],)):
         values['newid'] = row[0]
+    if not 'newid' in values:
+        print('section name not found in new.db - {}'.format(values['name']))
 
 #
 # get list of things the users have watched
@@ -101,7 +103,8 @@ for user in usermap:
         oldsettings[guid] = setting
 
     newwatchlist = newcur.execute(
-        "select guid from metadata_item_views where account_id=? and library_section_id is not null", (newid,))
+        "select guid from metadata_item_views inner join library_sections on library_sections.id = metadata_item_views.library_section_id "
+        "where account_id=? and library_sections.section_type in (1,2)", (newid,))
 
     #
     # make a list of already watched items in the new database, in case this script is being rerun we don't want duplicates
@@ -113,12 +116,16 @@ for user in usermap:
     watchlist = oldcur.execute(
         "select account_id,guid,metadata_type,library_section_id,grandparent_title,"
         "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,originally_available_at "
-        "from metadata_item_views where account_id=? and library_section_id is not null", (oldid,))
+        "from metadata_item_views inner join library_sections on library_sections.id = metadata_item_views.library_section_id "
+        "where account_id=? and library_sections.section_type in (1,2)", (oldid,))
 
     guid_dedup = []
 
     for watched in watchlist:
         guid = watched[1]
+        gptitle = watched[4]
+        ptitle = watched[6]
+        title = watched[8]
 
         if guid in guid_dedup:
             # clean up dups in watch list while we are here
@@ -129,7 +136,7 @@ for user in usermap:
             continue
 
         if not guid in newguidlist:
-            print('guid ' + guid + ' not found in media list - skipped')
+            print(f'{gptitle}/{ptitle}/{title} (guid {guid}) not found in media list - skipped')
             continue
 
         library_section_id = watched[3]
@@ -151,9 +158,9 @@ for user in usermap:
         w[3] = library_section_id
         watched = tuple(w)
         newcur.execute("insert into metadata_item_views ("
-                "account_id,guid,metadata_type,library_section_id,grandparent_title,"
-                "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,"
-                "originally_available_at) values (?,?,?,?,?,?,?,?,?,?,?,?,?)", watched)
+                       "account_id,guid,metadata_type,library_section_id,grandparent_title,"
+                       "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,"
+                       "originally_available_at) values (?,?,?,?,?,?,?,?,?,?,?,?,?)", watched)
 
         s = list(oldsettings[guid])
         s[0] = newid
@@ -170,11 +177,13 @@ for user in usermap:
 # go through all the media and migrate the added and created dates to preserve "on-deck" ordering
 #
 
-for item in oldcur.execute('select guid,added_at,created_at from metadata_items'):
-    (guid,added_at,created_at) = item
+for item in oldcur.execute(
+        'select guid,added_at,metadata_items.created_at from metadata_items '
+        'inner join library_sections on library_sections.id = metadata_items.library_section_id '
+        'where library_sections.section_type in (1,2)'):
+    (guid, added_at, created_at) = item
     # just do an optimistic update - sqllite will ignore if row doesn't exist
-    newcur.execute('update metadata_items set added_at=?, created_at=? where guid=?', (added_at,created_at,guid))
-
+    newcur.execute('update metadata_items set added_at=?, created_at=? where guid=?', (added_at, created_at, guid))
 
 oldcur.close()
 newcur.close()

@@ -37,8 +37,10 @@ The primary database file for Plex is called **com.plexapp.plugins.library.db** 
 1.  In your work directory you should have: export.py (this file), old.db, new.db
 1.  At a shell prompt, in the work directory, execute `python3 export.py`
 1.  You will probably get a bunch of messages about missing guids.  This is cruft built up in your database over time, usually media you don't have anymore. You can either research them yourself to be sure or continue.
+!.  You may rerun the script as often as you like as it will not create duplicate watch records.
 1.  Make you have an unaltered backup copy of your new plex database file in case this goes wrong.
 1.  Finally, copy new.db over your new plex server's main database file (as com.plexapp.plugins.library.db).
 1. Start Plex and verify.  IF you have any concerns just replace the database file with the backup copy you hopefully made.
+
 
 If anyone wants to contribute to make this script a full blow robust tool I'm all in.
