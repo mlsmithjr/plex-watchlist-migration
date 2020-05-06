@@ -13,6 +13,8 @@
 #
 import sys
 import sqlite3
+from math import floor
+
 from elasticsearch import Elasticsearch
 
 
@@ -48,6 +50,17 @@ episodes = [
     "and   mi.id=?"
 ]
 
+season_counts = [
+    'select season."index" as season, sum(media.duration) as duration, sum(media.size) as size',
+    'from metadata_items mi, media_items media',
+    'inner join metadata_items season on season.parent_id = mi.id',
+    'inner join metadata_items episode on episode.parent_id = season.id',
+    "where mi.metadata_type = '2'",
+    'and mi.id = ?',
+    'and media.metadata_item_id = episode.id',
+    'group by season'
+]
+
 
 def export_movies(es: Elasticsearch, con: sqlite3.dbapi2):
     con.row_factory = sqlite3.Row
@@ -79,6 +92,20 @@ def export_tv(es: Elasticsearch, con: sqlite3.dbapi2):
         count = cur.execute(' '.join(episodes), (mi,)).fetchone()
         rec['episodes'] = int(count[0])
         rec['tags_genre'] = rec['tags_genre'].split('|')
+        seasons = list()
+        rec['seasons'] = seasons
+        t_duration = 0
+        t_size = 0
+        for srec in cur.execute(' '.join(season_counts), (mi,)).fetchall():
+            row = dict(srec)
+            season = row['season']
+            duration = floor(row['duration'] / 1000 / 60) / 60
+            size = floor(row['size'] / 1000 / 1000)
+            t_duration += duration
+            t_size += size
+            seasons.append({'season': season, 'duration': duration, 'size': size})
+        rec['total_duration'] = t_duration
+        rec['total_size'] = t_size
         es.create('tvshows', rec['id'], rec)
 
 
@@ -87,6 +114,6 @@ if __name__ == '__main__':
     es_url = sys.argv[1]
     es = Elasticsearch([es_url])
     con = sqlite3.connect(sys.argv[2])
-    export_movies(es, con)
+    #export_movies(es, con)
     export_tv(es, con)
 
