@@ -114,6 +114,6 @@ if __name__ == '__main__':
     es_url = sys.argv[1]
     es = Elasticsearch([es_url])
     con = sqlite3.connect(sys.argv[2])
-    #export_movies(es, con)
+    export_movies(es, con)
     export_tv(es, con)
 
