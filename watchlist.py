@@ -28,11 +28,17 @@ def do_export(source_db, export_filename):
         #
         # get the watchlist for user
         #
+        # Note there is an additional join to metadata_items that seemingly isn't used for anything.  It is actually
+        # used implicitly to only grab valid watch records, as there tend to be leftovers from removed media or just
+        # orphaned due to bugs.
+        #
         user["watchlist"] = []
         watchlist = cursor.execute(
-            "select account_id,guid,metadata_type,library_section_id,grandparent_title,"
-            "parent_index,parent_title,'index',title,thumb_url,viewed_at,grandparent_guid,originally_available_at "
-            "from metadata_item_views inner join library_sections on library_sections.id = metadata_item_views.library_section_id "
+            "select account_id,metadata_item_views.guid,metadata_item_views.metadata_type,metadata_item_views.library_section_id,grandparent_title,"
+            "parent_index,parent_title,'index',metadata_item_views.title,thumb_url,viewed_at,grandparent_guid,metadata_item_views.originally_available_at "
+            "from metadata_item_views "
+            "inner join library_sections on library_sections.id = metadata_item_views.library_section_id "
+            "inner join metadata_items on metadata_items.guid = metadata_item_views.guid "
             "where account_id=? and library_sections.section_type in (1,2)", (user["id"],))
         for row in watchlist.fetchall():
             user["watchlist"].append(row)
@@ -68,7 +74,7 @@ def do_export(source_db, export_filename):
     full_export = {"users": user_list, "oldsections": source_sections, "ordering": ordering}
     with open(export_filename, "w") as fp:
         json.dump(full_export, fp, indent=2)
-    print("export complete, results in export.json")
+    print("export complete, results in " + export_filename)
 
 
 def do_import(export_filename, dest_db):
