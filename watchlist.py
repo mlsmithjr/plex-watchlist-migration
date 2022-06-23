@@ -173,7 +173,7 @@ def do_import(export_filename, dest_db):
                     library_section_id = source_sections[library_section_id]["newid"]
                 else:
                     print('  newid not found in source sections for library section id {}'.format(library_section_id))
-                continue
+                    continue
             else:
                 print('  unknown library section {} for guid {} - skipped'.format(library_section_id, guid))
                 continue
