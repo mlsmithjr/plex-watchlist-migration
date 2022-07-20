@@ -102,7 +102,8 @@ def do_import(export_filename, dest_db):
         for row in cursor.execute('select id from library_sections where name = ?', (values['name'],)):
             values['newid'] = row["id"]
         if "newid" not in values:
-            print('section name not found in database - {}'.format(values['name']))
+            name = values["name"]
+            print(f'WARNING: library name "{name}" not found in destination database - watchlist will NOT be migrated')
 
     #
     # create a map of source to destination user ids
@@ -164,7 +165,7 @@ def do_import(export_filename, dest_db):
                 continue
 
             if guid not in dest_guid_list:
-                print(f'  {gptitle} {ptitle} {title} (guid {guid}) not found in media list - skipped')
+                print(f'  {gptitle} {ptitle} {title} (guid {guid}) not found in destination media list - skipped')
                 continue
 
             library_section_id = str(watched["library_section_id"])
@@ -172,10 +173,11 @@ def do_import(export_filename, dest_db):
                 if source_sections[library_section_id].get("newid") is not None:
                     library_section_id = source_sections[library_section_id]["newid"]
                 else:
-                    print('  newid not found in source sections for library section id {}'.format(library_section_id))
+                    #print('  newid not found in source sections for library section id {}'.format(library_section_id))
+                    # Just silently ingore. We've already warned the user above that the dest library is missing.
                     continue
             else:
-                print('  unknown library section {} for guid {} - skipped'.format(library_section_id, guid))
+                print(f'  Unexpected: unknown library {library_section_id} for guid {guid} ({title}) - skipped')
                 continue
 
             if guid not in source_settings:
