@@ -3,8 +3,9 @@ Script to migrate your "watched" list of media to a new Plex server.
 
 *Features*
 * Migrate missing users.
-* Migrate watch history of users.
+* Migrate watch history of MANAGED users.
 * Migrate date added/created to preserve on-deck ordering
+* Co-exists with new Plex watchlist sync feature (this tool only handles MANAGED users).
 
 This utility is intended to migrate over your user media viewing history when you move to a new
 Plex server instance or to just maintain a failover.  The process of copying around the full database folder structure is not reliable and

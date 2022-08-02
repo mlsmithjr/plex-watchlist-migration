@@ -18,7 +18,7 @@ def do_export(source_db, export_filename):
     #
     # get users
     #
-    rows = cursor.execute('select id,name,hashed_password,salt,created_at from accounts where id != 0')
+    rows = cursor.execute('select id,name,hashed_password,salt,created_at from accounts where id != 0 and id < 1000')
     user_list = []
     for user in rows.fetchall():
 
@@ -103,7 +103,7 @@ def do_import(export_filename, dest_db):
             values['newid'] = row["id"]
         if "newid" not in values:
             name = values["name"]
-            print(f'WARNING: library name "{name}" not found in destination database - watchlist will NOT be migrated')
+            print(f'WARNING: library name "{name}" not found in destination database - watchlist for this library cannot be migrated')
 
     #
     # create a map of source to destination user ids
