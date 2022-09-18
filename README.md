@@ -1,6 +1,10 @@
 # plex-watchlist-migration
 Script to migrate your "watched" list of media to a new Plex server.
 
+## NOTICE (Sep 18 2022)
+It seems migrating the watchlist is hit-or-miss these days.  The guid (unique id) for a watched item no longer appears
+consistent between source and destination servers.  This basically kills the logic for matching and updating the watched items on the destination. I'm trying to figure out why some shows have different guids between server while others are the same (as it should be).  Until then know that you will be missing some items. They will be listed in the output when you run the tool.
+
 *Features*
 * Migrate missing users.
 * Migrate watch history of MANAGED users.
